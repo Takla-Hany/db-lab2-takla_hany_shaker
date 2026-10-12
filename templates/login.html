@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div>
+    <div>
+        <h2>Log in</h2>
+
+
+        {% if error %}
+        <div>{{ error }}</div>
+        {% endif %}
+
+
+        <div id="js-error"></div>
+
+        <form method="POST" action="/login" id="loginForm">
+            <div>
+                <label>Email</label>
+                <input type="email" name="email" id="email">
+            </div>
+
+            <div>
+                <label>Password</label>
+                <input type="password" name="password" id="password">
+            </div>
+
+            <button type="submit">Log in</button>
+        </form>
+
+        <div>
+            <a href="/register">Sign up</a>
+        </div>
+
+    </div>
+</div>
+
+
+<script>
+
+    document.getElementById('loginForm').addEventListener('submit', function (e) {
+        let email = document.getElementById('email').value.trim();
+        let password = document.getElementById('password').value;
+        let errorBox = document.getElementById('js-error');
+
+        let errorMessage = "";
+
+        if (!email) errorMessage = "Email is required";
+        else if (!password) errorMessage = "Password is required";
+
+        if (errorMessage) {
+            e.preventDefault();
+            errorBox.textContent = errorMessage;
+            errorBox.classList.remove('d-none');
+        }
+    });
+
+</script>
+{% endblock %}

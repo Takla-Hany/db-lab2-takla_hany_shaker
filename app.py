@@ -60,9 +60,46 @@ def index():
         return redirect(url_for('login'))
     return "not-completed"
 
-@app.route('/login')
+@app.route('/login', methods=['GET', 'POST'])
 def login():
-    return "not-completed"
+    # recive log-in data
+    if request.method == 'POST':
+        email = request.form.get('email').strip()
+        password = request.form.get('password')
+
+        # Validation
+        if not email:
+            return render_template('login.html', error="Email is required")
+        if not password:
+            return render_template('login.html', error="Password is required")
+
+        connection = get_db_connection()
+        try:
+            with connection.cursor() as cursor:
+                # check for user data
+                cursor.execute("SELECT user_id, name, password_hash FROM users WHERE email = %s", (email))
+                user = cursor.fetchone()
+
+                # if the user exists and the password matches:
+                if user and bcrypt.checkpw(password.encode('utf-8'), user['password_hash'].encode('utf-8')):
+                    session['user_id'] = user['user_id']
+                    session['user_name'] = user['name']
+                    return redirect(url_for('index'))
+                else:
+                    # wrong e-mail or wrong password
+                    return render_template('login.html', error="Invalid email or password")
+        finally:
+            connection.close()
+
+    # render login page
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    # clear the session
+    session.clear()
+    return redirect(url_for('login'))
+
 
 if __name__ == '__main__':
     app.run(debug=True)
