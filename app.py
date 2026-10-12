@@ -56,7 +56,7 @@ def register():
 
 @app.route('/')
 def index():
-    # chech the session
+    # check the session
     if 'user_id' not in session:
         return redirect(url_for('login'))
     
@@ -69,7 +69,10 @@ def index():
     finally:
         connection.close()
         
-    return render_template('index.html', todos=todos, user_name=session.get('user_name'))
+    # BONUS
+    open_count = sum(1 for todo in todos if todo['is_done'] == 0)
+        
+    return render_template('index.html', todos=todos, user_name=session.get('user_name', 'User'), open_count=open_count)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -210,7 +213,7 @@ def delete_todo(todo_id):
         connection.commit()
     finally:
         connection.close()
-        
+
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
