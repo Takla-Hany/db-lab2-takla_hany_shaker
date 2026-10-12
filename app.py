@@ -56,9 +56,20 @@ def register():
 
 @app.route('/')
 def index():
+    # chech the session
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    return "not-completed"
+    
+    connection = get_db_connection()
+    todos = []
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT todo_id, title, is_done, created_at FROM todos WHERE user_id = %s ORDER BY todo_id DESC", (session['user_id']))
+            todos = cursor.fetchall()
+    finally:
+        connection.close()
+        
+    return render_template('index.html', todos=todos, user_name=session.get('user_name'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -100,6 +111,107 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
+
+@app.route('/add', methods=['POST'])
+def add_todo():
+    # chech the session
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    title = request.form.get('title').strip()
+    
+    # Validation
+    if not title or len(title) > 200:
+        error = "Title is required" if not title else "Title is too long (200 characters at most)"
+        connection = get_db_connection()
+
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT todo_id, title, is_done, created_at FROM todos WHERE user_id = %s ORDER BY todo_id DESC", (session['user_id']))
+                todos = cursor.fetchall()
+            return render_template('index.html', todos=todos, user_name=session.get('user_name'), error=error)
+        finally:
+            connection.close()
+
+    connection = get_db_connection()
+    try:
+        with connection.cursor() as cursor:
+            # add to-do
+            cursor.execute("INSERT INTO todos (user_id, title) VALUES (%s, %s)", (session['user_id'], title))
+        connection.commit()
+    finally:
+        connection.close()
+
+    return redirect(url_for('index'))
+
+@app.route('/edit/<int:todo_id>', methods=['POST'])
+def edit_todo(todo_id):
+    # chech the session
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    new_title = request.form.get('title').strip()
+    
+    if not new_title or len(new_title) > 200:
+        error = "Title is required" if not new_title else "Title is too long (200 characters at most)"
+        connection = get_db_connection()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT todo_id, title, is_done, created_at FROM todos WHERE user_id = %s ORDER BY todo_id DESC", (session['user_id']))
+                todos = cursor.fetchall()
+            return render_template('index.html', todos=todos, user_name=session.get('user_name', 'User'), error=error)
+        finally:
+            connection.close()
+
+    connection = get_db_connection()
+    try:
+        with connection.cursor() as cursor:
+            # update to-do
+            cursor.execute("UPDATE todos SET title = %s WHERE todo_id = %s AND user_id = %s", (new_title, todo_id, session['user_id']))
+        connection.commit()
+
+    finally:
+        connection.close()
+
+    return redirect(url_for('index'))
+
+@app.route('/toggle/<int:todo_id>', methods=['POST'])
+def toggle_todo(todo_id):
+    # chech the session
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    is_done = request.form.get('is_done')
+    new_status = 1 if is_done == '1' else 0
+    
+    connection = get_db_connection()
+    try:
+        with connection.cursor() as cursor:
+            # update to-do
+            cursor.execute("UPDATE todos SET is_done = %s WHERE todo_id = %s AND user_id = %s", (new_status, todo_id, session['user_id']))
+        connection.commit()
+
+    finally:
+        connection.close()
+
+    return redirect(url_for('index'))
+
+@app.route('/delete/<int:todo_id>', methods=['POST'])
+def delete_todo(todo_id):
+    # chech the session
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+        
+    connection = get_db_connection()
+    try:
+        with connection.cursor() as cursor:
+            # update to-do
+            cursor.execute("DELETE FROM todos WHERE todo_id = %s AND user_id = %s", (todo_id, session['user_id']))
+        connection.commit()
+    finally:
+        connection.close()
+        
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
     app.run(debug=True)

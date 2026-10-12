@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div>
+    <h2>To-Do</h2>
+    <div>
+        <span>Hi, {{ user_name }}</span>
+        <a href="/logout">Log out</a>
+    </div>
+</div>
+
+
+{% if error %}
+<div>{{ error }}</div>
+{% endif %}
+
+<div id="js-error"></div>
+
+
+<form method="POST" action="/add" id="addForm">
+    <input type="text" name="title" id="addTitle">
+    <button type="submit">Add</button>
+</form>
+
+
+{% if todos %}
+<ul>
+    {% for todo in todos %}
+    <li>
+
+
+        <form method="POST" action="/toggle/{{ todo.todo_id }}">
+            <input type="hidden" name="is_done" value="{{ 0 if todo.is_done else 1 }}">
+            <input type="checkbox" onchange="this.form.submit()" {% if todo.is_done %}checked{% endif %}>
+        </form>
+
+
+        <form method="POST" action="/edit/{{ todo.todo_id }}">
+            <input type="text" name="title" value="{{ todo.title }}">
+            <button type="submit">Save</button>
+        </form>
+
+
+        <form method="POST" action="/delete/{{ todo.todo_id }}" onsubmit="return confirm('Are you sure?');">
+            <button type="submit">Delete</button>
+        </form>
+
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+
+<div>
+    The list is empty.
+</div>
+
+{% endif %}
+
+
+<script>
+
+    document.getElementById('addForm').addEventListener('submit', function (e) {
+        let title = document.getElementById('addTitle').value.trim();
+        let errorBox = document.getElementById('js-error');
+        if (!title) {
+            e.preventDefault();
+            errorBox.textContent = "Title is required";
+            errorBox.classList.remove('d-none');
+        } else if (title.length > 200) {
+            e.preventDefault();
+            errorBox.textContent = "Title is too long (200 characters at most)";
+            errorBox.classList.remove('d-none');
+        }
+    });
+
+
+    document.querySelectorAll('.edit-form').forEach(function (form) {
+        form.addEventListener('submit', function (e) {
+            let title = form.querySelector('input[name="title"]').value.trim();
+            let errorBox = document.getElementById('js-error');
+            if (!title) {
+                e.preventDefault();
+                errorBox.textContent = "Title is required";
+                errorBox.classList.remove('d-none');
+            } else if (title.length > 200) {
+                e.preventDefault();
+                errorBox.textContent = "Title is too long (200 characters at most)";
+                errorBox.classList.remove('d-none');
+            }
+        });
+    });
+
+</script>
+{% endblock %}
